@@ -1,10 +1,13 @@
 package com.quodex.snipr.dto;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 public class RegisterRequest {
     private String username;
     private String email;

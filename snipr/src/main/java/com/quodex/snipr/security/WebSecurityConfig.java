@@ -19,9 +19,12 @@ package com.quodex.snipr.security;
 import com.quodex.snipr.security.jwt.JwtAuthenticationFilter;
 import com.quodex.snipr.service.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -39,6 +42,9 @@ public class WebSecurityConfig {
 
     private UserDetailsServiceImpl userDetailsService;
 
+    @Autowired
+    private CustomAuthEntryPoint customAuthEntryPoint;
+
     // Registers the custom JWT authentication filter as a bean
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
@@ -49,6 +55,11 @@ public class WebSecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
     // Configures the authentication provider using our custom UserDetailsService and password encoder
@@ -64,12 +75,12 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable) // Disable CSRF because we're using stateless JWTs
-
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthEntryPoint))
                 // Define which endpoints are public and which require authentication
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()      // Allow access to auth endpoints like login/signup
                         .requestMatchers("/api/urls/**").authenticated()  // Protect /api/urls/** endpoints
-                        .requestMatchers("/{shortUrl").permitAll()        // Allow public access to shortened URLs
+                        .requestMatchers("/{shortUrl}").permitAll()        // Allow public access to shortened URLs
                         .anyRequest().authenticated()                    // Any other requests require authentication
                 );
 
